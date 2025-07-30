@@ -1,0 +1,7 @@
+
+# === Node.js (backend) ===
+server/node_modules/
+
+# === React (frontend) ===
+client/node_modules/
+client/.env
