@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./ChatBot.scss";
 
@@ -9,43 +9,33 @@ function Chatbot() {
     { key: "bedrooms", question: "🛏️ How many bedrooms do you need?" },
   ];
 
-  const [messages, setMessages] = useState([
-    { type: "bot", text: questions[0].question },
-  ]);
+  const [messages, setMessages] = useState([{ type: "bot", text: questions[0].question }]);
   const [input, setInput] = useState("");
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
+  const chatRef = useRef(null);
+
+  useEffect(() => {
+    chatRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSubmit = async () => {
-    const currentKey = questions[step].key;
-
     if (!input.trim()) return;
 
-    // 1. Save user input as answer
-    setMessages((prev) => [
-      ...prev,
-      { type: "user", text: input },
-    ]);
+    const currentKey = questions[step].key;
+    setMessages(prev => [...prev, { type: "user", text: input }]);
     const updatedForm = { ...formData, [currentKey]: input };
     setFormData(updatedForm);
     setInput("");
 
-    // 2. If more questions, ask next one
     if (step + 1 < questions.length) {
       setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          { type: "bot", text: questions[step + 1].question },
-        ]);
-      }, 400);
+        setMessages(prev => [...prev, { type: "bot", text: questions[step + 1].question }]);
+      }, 500);
       setStep(step + 1);
     } else {
-      // 3. All inputs done: search properties
-      setMessages((prev) => [
-        ...prev,
-        { type: "bot", text: "🔍 Searching for matching properties..." },
-      ]);
+      setMessages(prev => [...prev, { type: "bot", text: "🔍 Searching for matching properties..." }]);
       setLoading(true);
 
       try {
@@ -53,26 +43,14 @@ function Chatbot() {
         const properties = res.data;
 
         if (properties.length === 0) {
-          setMessages((prev) => [
-            ...prev,
-            { type: "bot", text: "Sorry, no properties matched your criteria." },
-          ]);
+          setMessages(prev => [...prev, { type: "bot", text: "❌ No matching properties found." }]);
         } else {
           properties.forEach((prop) => {
-            setMessages((prev) => [
-              ...prev,
-              {
-                type: "property",
-                data: prop,
-              },
-            ]);
+            setMessages(prev => [...prev, { type: "property", data: prop }]);
           });
         }
-      } catch (error) {
-        setMessages((prev) => [
-          ...prev,
-          { type: "bot", text: "Something went wrong while fetching properties." },
-        ]);
+      } catch {
+        setMessages(prev => [...prev, { type: "bot", text: "⚠️ Error fetching properties." }]);
       } finally {
         setLoading(false);
       }
@@ -84,12 +62,12 @@ function Chatbot() {
   };
 
   return (
-    <div className="chatbot-container">
-      <h2> ❤️ Agent Mira: Real Estate Chatbot ❤️</h2>
+    <div className="whatsapp-chatbot">
+      <div className="chat-header">Agent Mira Real Estate Chatbot</div>
       <div className="chat-window">
         {messages.map((msg, idx) =>
           msg.type === "property" ? (
-            <div className="chat-message bot" key={idx}>
+            <div className="msg bot" key={idx}>
               <div className="property-card">
                 <img src={msg.data.image_url} alt={msg.data.title} />
                 <h4>{msg.data.title}</h4>
@@ -100,12 +78,13 @@ function Chatbot() {
               </div>
             </div>
           ) : (
-            <div className={`chat-message ${msg.type}`} key={idx}>
-              {msg.text}
+            <div className={`msg ${msg.type}`} key={idx}>
+              <div className="bubble">{msg.text}</div>
             </div>
           )
         )}
-        {loading && <div className="chat-message bot typing">Bot is typing...</div>}
+        {loading && <div className="msg bot"><div className="bubble typing">Bot is typing...</div></div>}
+        <div ref={chatRef} />
       </div>
 
       <div className="chat-input">
